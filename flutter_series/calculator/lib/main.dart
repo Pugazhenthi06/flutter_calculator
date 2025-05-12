@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(MainApp());
+  runApp(const MainApp());
 }
 
 class MainApp extends StatefulWidget {
@@ -26,29 +26,32 @@ class _MainAppState extends State<MainApp> {
           centerTitle: true,
         ),
         backgroundColor: Colors.black,
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              children: [
-                Container(
-                  
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 10),
-                  child: Text(
-                    inputvalue,
-                    style: const TextStyle(color: Colors.white, fontSize: 48),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+        body: Builder(
+          builder: (innerContext) {
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  children: [
+                    Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 10),
+                      child: Text(
+                        inputvalue,
+                        style: const TextStyle(color: Colors.white, fontSize: 48),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ..._buildButtonRows(innerContext),
+                    const SizedBox(height: 15),
+                    _buildClearButton(),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                ..._buildButtonRows(context),
-                const SizedBox(height: 15),
-                _buildClearButton(),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -67,13 +70,13 @@ class _MainAppState extends State<MainApp> {
         children: row.map((text) {
           final isOperator = "+-x/=".contains(text);
           final color = isOperator ? Colors.orange : Colors.grey.shade800;
-          return _buildCalcButton(text, color);
+          return _buildCalcButton(text, color, context);
         }).toList(),
       );
     }).toList();
   }
 
-  Widget _buildCalcButton(String text, Color bgColor) {
+  Widget _buildCalcButton(String text, Color bgColor, BuildContext context) {
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -83,7 +86,7 @@ class _MainAppState extends State<MainApp> {
             shape: const CircleBorder(),
             padding: const EdgeInsets.all(24),
           ),
-          onPressed: () => _handleButtonPress(text),
+          onPressed: () => _handleButtonPress(text, context),
           child: Text(
             text,
             style: const TextStyle(color: Colors.white, fontSize: 28),
@@ -119,14 +122,22 @@ class _MainAppState extends State<MainApp> {
     );
   }
 
-  void _handleButtonPress(String text) {
+  void _handleButtonPress(String text, BuildContext context) {
     setState(() {
       if ("+-x/".contains(text)) {
+        if (inputvalue.isEmpty) {
+          _showSnack("Enter a number first", context);
+          return;
+        }
         operator = text;
         calcvalue = inputvalue;
         inputvalue = "";
       } else if (text == "=") {
         try {
+          if (calcvalue.isEmpty || inputvalue.isEmpty || operator.isEmpty) {
+            _showSnack("Incomplete expression", context);
+            return;
+          }
           final a = double.parse(calcvalue);
           final b = double.parse(inputvalue);
 
@@ -142,14 +153,20 @@ class _MainAppState extends State<MainApp> {
               break;
             case "/":
               if (b == 0) {
-                _showSnack("Cannot divide by zero!");
+                _showSnack("Cannot divide by zero!", context);
+                inputvalue = "";
+                calcvalue = "";
+                operator = "";
+                return;
               } else {
                 inputvalue = (a / b).toString();
               }
               break;
           }
+          operator = "";
+          calcvalue = "";
         } catch (_) {
-          _showSnack("Invalid input");
+          _showSnack("Invalid input", context);
         }
       } else {
         inputvalue += text;
@@ -157,12 +174,12 @@ class _MainAppState extends State<MainApp> {
     });
   }
 
-  void _showSnack(String msg) {
+  void _showSnack(String msg, BuildContext context) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
         duration: const Duration(seconds: 2),
-        backgroundColor: Colors.redAccent,
+        backgroundColor: Colors.blueAccent,
       ),
     );
   }
